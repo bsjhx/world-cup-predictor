@@ -9,10 +9,16 @@ registry = ToolRegistry()
 @lru_cache()
 def load_data():
     df = pd.read_csv("data/results.csv", parse_dates=["date"])
-    # normalize team names to avoid "USA" vs "United States" issues
-    df["home_team"] = df["home_team"].str.strip()
-    df["away_team"] = df["away_team"].str.strip()
     return df
+
+@lru_cache()
+def get_all_team_names():
+    """Get all unique team names from the dataset"""
+    df = load_data()
+    home_teams = set(df["home_team"].unique())
+    away_teams = set(df["away_team"].unique())
+    all_teams = sorted(home_teams | away_teams)
+    return all_teams
 
 
 @registry.register
@@ -226,7 +232,6 @@ def get_weighted_form(team: str, last_n: int = 20) -> dict:
     last_n: Number of recent matches to analyze
     """
     df = load_data()
-    team = normalize_team_name(team)
 
     matches = df[
         (df.home_team == team) | (df.away_team == team)
@@ -321,7 +326,6 @@ def get_competitive_record(team: str, years: int = 4) -> dict:
     years: Number of years to look back
     """
     df = load_data()
-    team = normalize_team_name(team)
 
     cutoff_date = datetime.now() - timedelta(days=years*365)
 
@@ -382,7 +386,6 @@ def get_neutral_venue_stats(team: str, last_n: int = 20) -> dict:
     last_n: Number of recent neutral venue matches to analyze
     """
     df = load_data()
-    team = normalize_team_name(team)
 
     # Neutral venue matches
     neutral = df[
