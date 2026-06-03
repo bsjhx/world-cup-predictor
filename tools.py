@@ -1,6 +1,7 @@
 import pandas as pd
 from functools import lru_cache
 from tool_registry import ToolRegistry
+from datetime import datetime, timedelta
 
 # Create a global registry for all tools
 registry = ToolRegistry()
@@ -77,6 +78,7 @@ def get_recent_form(team: str, last_n: int = 10) -> dict:
     last_n: Number of recent matches to return
     """
     df = load_data()
+    team = normalize_team_name(team)
 
     matches = df[
         (df.home_team == team) | (df.away_team == team)
@@ -213,4 +215,215 @@ def get_goals_stats(team: str, last_n: int = 20) -> dict:
             "avg_scored": round(away_games.away_score.mean(), 2) if len(away_games) > 0 else 0,
             "avg_conceded": round(away_games.home_score.mean(), 2) if len(away_games) > 0 else 0,
         }
+    }
+
+
+@registry.register
+def get_weighted_form(team: str, last_n: int = 20) -> dict:
+    """
+    Get team's weighted form with recent matches counting more and tournament matches weighted higher
+
+    team: Team name
+    last_n: Number of recent matches to analyze
+    """
+    df = load_data()
+    team = normalize_team_name(team)
+
+    matches = df[
+        (df.home_team == team) | (df.away_team == team)
+    ].tail(last_n).copy()
+
+    if matches.empty:
+        return {"error": f"No matches found for {team}"}
+
+    # Calculate days since each match
+    today = datetime.now()
+    matches['days_ago'] = (today - matches['date']).dt.days
+
+    # Tournament importance weights
+    tournament_weights = {
+        "FIFA World Cup": 3.0,
+        "FIFA World Cup qualification": 2.0,
+        "UEFA Euro": 2.5,
+        "UEFA Euro qualification": 1.5,
+        "Copa América": 2.5,
+        "African Cup of Nations": 2.5,
+        "Friendly": 1.0
+    }
+
+    weighted_points = 0
+    total_weight = 0
+    recent_results = []
+
+    for _, row in matches.iterrows():
+        is_home = row.home_team == team
+        scored = row.home_score if is_home else row.away_score
+        conceded = row.away_score if is_home else row.home_score
+
+        # Skip matches with no score (future matches)
+        if pd.isna(scored) or pd.isna(conceded):
+            continue
+
+        # Calculate days since each match
+        days_ago = (today - row.date).days
+
+        # Time decay: more recent = more weight (exponential decay)
+        time_weight = 1.0 / (1.0 + days_ago / 365.0)
+
+        # Tournament importance
+        tournament = row.tournament
+        tournament_weight = tournament_weights.get(tournament, 1.0)
+
+        # Combined weight
+        weight = time_weight * tournament_weight
+
+        # Points: Win=3, Draw=1, Loss=0
+        if scored > conceded:
+            points = 3
+            result = "W"
+        elif scored == conceded:
+            points = 1
+            result = "D"
+        else:
+            points = 0
+            result = "L"
+
+        weighted_points += points * weight
+        total_weight += weight
+
+        recent_results.append({
+            "date": str(row.date.date()),
+            "opponent": row.away_team if is_home else row.home_team,
+            "result": result,
+            "score": f"{scored}-{conceded}",
+            "tournament": tournament,
+            "days_ago": int(days_ago),
+            "weight": round(weight, 2)
+        })
+
+    weighted_form_score = weighted_points / total_weight if total_weight > 0 else 0
+
+    return {
+        "team": team,
+        "weighted_form_score": round(weighted_form_score, 2),
+        "max_possible": 3.0,
+        "explanation": "Score considers recency (recent matches weighted higher) and tournament importance (World Cup > qualifiers > friendlies)",
+        "sample_size": len(matches),
+        "recent_matches": recent_results[-5:]  # Show last 5
+    }
+
+
+@registry.register
+def get_competitive_record(team: str, years: int = 4) -> dict:
+    """
+    Get team's record in competitive matches only (excludes friendlies) over recent years
+
+    team: Team name
+    years: Number of years to look back
+    """
+    df = load_data()
+    team = normalize_team_name(team)
+
+    cutoff_date = datetime.now() - timedelta(days=years*365)
+
+    competitive = df[
+        ((df.home_team == team) | (df.away_team == team)) &
+        (df.date >= cutoff_date) &
+        (df.tournament != "Friendly")
+    ]
+
+    if competitive.empty:
+        return {"error": f"No competitive matches found for {team} in last {years} years"}
+
+    wins, draws, losses = 0, 0, 0
+    goals_scored, goals_conceded = 0, 0
+
+    for _, row in competitive.iterrows():
+        is_home = row.home_team == team
+        scored = row.home_score if is_home else row.away_score
+        conceded = row.away_score if is_home else row.home_score
+
+        # Skip matches with no score (future matches)
+        if pd.isna(scored) or pd.isna(conceded):
+            continue
+
+        goals_scored += scored
+        goals_conceded += conceded
+
+        if scored > conceded:
+            wins += 1
+        elif scored == conceded:
+            draws += 1
+        else:
+            losses += 1
+
+    total_matches = len(competitive)
+    win_rate = (wins / total_matches * 100) if total_matches > 0 else 0
+
+    return {
+        "team": team,
+        "period": f"Last {years} years (competitive only)",
+        "total_matches": total_matches,
+        "record": f"{wins}W {draws}D {losses}L",
+        "win_rate": round(win_rate, 1),
+        "goals_scored": goals_scored,
+        "goals_conceded": goals_conceded,
+        "goal_difference": goals_scored - goals_conceded,
+        "avg_goals_scored": round(goals_scored / total_matches, 2) if total_matches > 0 else 0,
+        "avg_goals_conceded": round(goals_conceded / total_matches, 2) if total_matches > 0 else 0
+    }
+
+
+@registry.register
+def get_neutral_venue_stats(team: str, last_n: int = 20) -> dict:
+    """
+    Get team's performance at neutral venues (important for World Cup predictions)
+
+    team: Team name
+    last_n: Number of recent neutral venue matches to analyze
+    """
+    df = load_data()
+    team = normalize_team_name(team)
+
+    # Neutral venue matches
+    neutral = df[
+        ((df.home_team == team) | (df.away_team == team)) &
+        (df.neutral == True)
+    ].tail(last_n)
+
+    if neutral.empty:
+        return {"error": f"No neutral venue matches found for {team}"}
+
+    wins, draws, losses = 0, 0, 0
+    goals_scored, goals_conceded = 0, 0
+
+    for _, row in neutral.iterrows():
+        is_home_listed = row.home_team == team
+        scored = row.home_score if is_home_listed else row.away_score
+        conceded = row.away_score if is_home_listed else row.home_score
+
+        # Skip matches with no score (future matches)
+        if pd.isna(scored) or pd.isna(conceded):
+            continue
+
+        goals_scored += scored
+        goals_conceded += conceded
+
+        if scored > conceded:
+            wins += 1
+        elif scored == conceded:
+            draws += 1
+        else:
+            losses += 1
+
+    total = len(neutral)
+
+    return {
+        "team": team,
+        "neutral_venue_matches": total,
+        "record": f"{wins}W {draws}D {losses}L",
+        "win_rate": round((wins / total * 100), 1) if total > 0 else 0,
+        "avg_goals_scored": round(goals_scored / total, 2) if total > 0 else 0,
+        "avg_goals_conceded": round(goals_conceded / total, 2) if total > 0 else 0,
+        "note": "World Cup matches are played at neutral venues"
     }
