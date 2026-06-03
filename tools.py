@@ -1,5 +1,9 @@
 import pandas as pd
 from functools import lru_cache
+from tool_registry import ToolRegistry
+
+# Create a global registry for all tools
+registry = ToolRegistry()
 
 @lru_cache()
 def load_data():
@@ -10,8 +14,15 @@ def load_data():
     return df
 
 
+@registry.register
 def get_head_to_head(team_a: str, team_b: str, last_n: int = 10) -> dict:
-    """Returns historical head to head record between two teams"""
+    """
+    Get historical head to head results between two national teams
+
+    team_a: First team name
+    team_b: Second team name
+    last_n: Number of recent matches to return
+    """
     df = load_data()
 
     h2h = df[
@@ -57,8 +68,14 @@ def get_head_to_head(team_a: str, team_b: str, last_n: int = 10) -> dict:
     }
 
 
+@registry.register
 def get_recent_form(team: str, last_n: int = 10) -> dict:
-    """Returns a team's recent match results"""
+    """
+    Get a team's recent match results and form
+
+    team: Team name
+    last_n: Number of recent matches to return
+    """
     df = load_data()
 
     matches = df[
@@ -112,8 +129,14 @@ def get_recent_form(team: str, last_n: int = 10) -> dict:
     }
 
 
+@registry.register
 def get_tournament_history(team: str, tournament: str = "FIFA World Cup") -> dict:
-    """Returns a team's history in a specific tournament"""
+    """
+    Get a team's historical performance in a tournament like FIFA World Cup
+
+    team: Team name
+    tournament: Tournament name
+    """
     df = load_data()
 
     wc = df[
@@ -151,8 +174,14 @@ def get_tournament_history(team: str, tournament: str = "FIFA World Cup") -> dic
     }
 
 
+@registry.register
 def get_goals_stats(team: str, last_n: int = 20) -> dict:
-    """Returns attacking and defensive stats for a team"""
+    """
+    Get attacking and defensive goal statistics for a team
+
+    team: Team name
+    last_n: Number of recent matches to analyze
+    """
     df = load_data()
 
     matches = df[
