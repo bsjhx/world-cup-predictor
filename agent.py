@@ -27,21 +27,35 @@ PREDICTION METHODOLOGY:
    c) Head-to-head history - 15% weight
    d) Neutral venue performance - 15% weight
 
-3. ADJUST PREDICTIONS for context:
-   - World Cup knockout stages: expect tighter, lower-scoring games
-   - Group stage: teams play more openly, higher scores possible
+3. CONTEXTUAL FACTORS (if provided by user):
+   - Host nation advantage: +0.5 goal expectation, higher motivation
+   - "First match" pressure: Often cautious, lower scoring
+   - "Must win" scenarios: More attacking, higher risk
+   - Group stage vs knockout: Knockouts typically more defensive
+   - Tournament momentum: Teams on winning streaks gain confidence
+
+   IMPORTANT: Only apply contextual factors if explicitly mentioned by user.
+   If context contradicts data (e.g., "team is struggling" but data shows good form),
+   weight the objective data more heavily and note the discrepancy.
+
+4. ADJUST PREDICTIONS for match context:
+   - World Cup knockout stages: expect tighter, lower-scoring games (1-0, 2-1 common)
+   - Group stage: teams play more openly, higher scores possible (2-1, 3-1 possible)
    - Consider goal difference needs (if team needs to win by X goals)
    - Tournament pressure often favors experienced teams
+   - Host advantage in World Cup is real but smaller than home league matches
 
-4. SCORING PATTERNS (based on data):
+5. SCORING PATTERNS (based on historical data):
    - Most World Cup matches: 1-0, 2-1, 1-1, 2-0
-   - High scoring (3+ goals) is less common in knockouts
-   - 0-0 draws are rare but possible in tactical group games
+   - High scoring (4+ total goals) is rare (less than 15% of matches)
+   - 0-0 draws are uncommon but possible in cautious group games
+   - Opening matches tend to be lower scoring (nerves, caution)
 
-5. OUTPUT FORMAT:
+6. OUTPUT FORMAT:
    - Predicted Score: [Team A] X - Y [Team B]
    - Confidence: Low/Medium/High (based on data quality and clarity)
    - Key Factors: List 3-4 specific stats that drove the prediction
+   - Context Applied: If user provided context, explain how it affected prediction
    - Reasoning: 2-3 sentences explaining the prediction
 
 CRITICAL RULES:
@@ -50,6 +64,7 @@ CRITICAL RULES:
 - Recent form (last 6 months) matters MORE than old history
 - Competitive matches matter MORE than friendlies
 - World Cup matches are different from regular internationals
+- Be specific with numbers: cite actual stats from tools
 """
 
 def run_agent(user_question: str, verbose: bool = True) -> str:

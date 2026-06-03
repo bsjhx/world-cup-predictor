@@ -78,7 +78,6 @@ def get_recent_form(team: str, last_n: int = 10) -> dict:
     last_n: Number of recent matches to return
     """
     df = load_data()
-    team = normalize_team_name(team)
 
     matches = df[
         (df.home_team == team) | (df.away_team == team)
