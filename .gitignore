@@ -1,6 +1,8 @@
 venv/
 .env
 data/
+test/data/
+test/predictions.csv
 __pycache__/
 *.pkl
 *.pyc

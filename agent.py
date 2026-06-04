@@ -67,7 +67,7 @@ CRITICAL RULES:
 - Be specific with numbers: cite actual stats from tools
 """
 
-def run_agent(user_question: str, verbose: bool = True) -> str:
+def run_agent(user_question: str, verbose: bool = True, model="gpt-5") -> str:
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": user_question}
@@ -75,14 +75,13 @@ def run_agent(user_question: str, verbose: bool = True) -> str:
 
     while True:
         response = client.chat.completions.create(
-            model="gpt-5",
+            model=model,
             messages=messages,
-            tools=registry.get_schemas()  # Use registry instead of hardcoded schemas
+            tools=registry.get_schemas()
         )
 
         choice = response.choices[0]
 
-        # LLM wants to call a tool
         if choice.finish_reason == "tool_calls":
             messages.append(choice.message)
 

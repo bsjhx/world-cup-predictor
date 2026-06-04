@@ -6,9 +6,18 @@ from datetime import datetime, timedelta
 # Create a global registry for all tools
 registry = ToolRegistry()
 
+# Global variable to configure data source
+_DATA_SOURCE = "data/results.csv"
+
+def set_data_source(path: str):
+    """Set the data source path and clear cache"""
+    global _DATA_SOURCE
+    _DATA_SOURCE = path
+    load_data.cache_clear()
+
 @lru_cache()
 def load_data():
-    df = pd.read_csv("data/results.csv", parse_dates=["date"])
+    df = pd.read_csv(_DATA_SOURCE, parse_dates=["date"])
     return df
 
 @lru_cache()
