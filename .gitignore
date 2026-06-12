@@ -1,6 +1,5 @@
 venv/
 .env
-data/
 test/data/
 test/predictions.csv
 __pycache__/
