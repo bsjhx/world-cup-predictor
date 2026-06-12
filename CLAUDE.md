@@ -81,6 +81,7 @@ set_data_source("path/to/custom.csv")
 ## Key Files
 
 - **data/results.csv**: Complete international football match history (required)
+- **data/elo_ranking.tsv**: Current Elo ratings and world rankings for all teams
 - **data/former_names.csv**: Historical country name mappings
 - **data/shootouts.csv**: Penalty shootout records
 - **.env**: API credentials (gitignored)
@@ -95,6 +96,7 @@ set_data_source("path/to/custom.csv")
 - `get_weighted_form`: Advanced form metric with time decay and tournament importance weighting
 - `get_competitive_record`: Record in non-friendly matches over recent years
 - `get_neutral_venue_stats`: Performance at neutral venues (critical for World Cup)
+- `get_elo_rating`: Current Elo rating and world ranking for a team
 
 **Adding New Tools:**
 1. Define function in `tools.py` with type hints

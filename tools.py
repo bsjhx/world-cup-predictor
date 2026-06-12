@@ -8,16 +8,27 @@ registry = ToolRegistry()
 
 # Global variable to configure data source
 _DATA_SOURCE = "data/results.csv"
+_ELO_SOURCE = "data/elo_ranking.tsv"
 
 def set_data_source(path: str):
     """Set the data source path and clear cache"""
     global _DATA_SOURCE
     _DATA_SOURCE = path
     load_data.cache_clear()
+    load_elo_data.cache_clear()
 
 @lru_cache()
 def load_data():
     df = pd.read_csv(_DATA_SOURCE, parse_dates=["date"])
+    return df
+
+@lru_cache()
+def load_elo_data():
+    """Load ELO ranking data"""
+    # Column structure: rank_idx, world_rank, country_name, elo_rating, ...
+    df = pd.read_csv(_ELO_SOURCE, sep='\t', header=None)
+    # Set column names for clarity
+    df.columns = ['rank_idx', 'world_rank', 'country', 'elo'] + [f'col_{i}' for i in range(4, len(df.columns))]
     return df
 
 @lru_cache()
@@ -438,3 +449,41 @@ def get_neutral_venue_stats(team: str, last_n: int = 20) -> dict:
         "avg_goals_conceded": round(goals_conceded / total, 2) if total > 0 else 0,
         "note": "World Cup matches are played at neutral venues"
     }
+
+
+@registry.register
+def get_elo_rating(team: str, date: str = None) -> dict:
+    """
+    Get team's current Elo rating and world ranking
+
+    team: Team name (must match country name in data)
+    date: Date parameter (currently ignored - returns latest available data)
+    """
+    elo_df = load_elo_data()
+
+    # Find team in ELO data
+    team_row = elo_df[elo_df['country'] == team]
+
+    if team_row.empty:
+        # Try case-insensitive match
+        team_row = elo_df[elo_df['country'].str.lower() == team.lower()]
+
+    if team_row.empty:
+        return {
+            "error": f"Team '{team}' not found in Elo ratings",
+            "note": "Elo data contains current rankings only. Check team name spelling."
+        }
+
+    team_row = team_row.iloc[0]
+
+    result = {
+        "team": team_row['country'],
+        "elo": int(team_row['elo']),
+        "world_rank": int(team_row['world_rank']),
+        "note": "Current Elo rating (latest available snapshot)"
+    }
+
+    if date:
+        result["warning"] = f"Date '{date}' ignored - only current Elo data available"
+
+    return result
