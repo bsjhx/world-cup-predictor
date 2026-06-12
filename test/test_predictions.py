@@ -4,6 +4,7 @@ import os
 import sys
 import time
 from pathlib import Path
+import argparse
 
 # Add parent directory to path to import project modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -376,6 +377,39 @@ def print_final_summary():
     print(f"Winner Correct: {winner_correct} ({winner_pct:.2f}%)")
     print("=" * 80)
 
+def print_results():
+    # Load predictions
+    df = pd.read_csv(OUTPUT_FILE)
+
+    if len(df) == 0:
+        print("No predictions to summarize!")
+        return
+
+    # Calculate metrics (pandas auto-converts 'true'/'false' strings to booleans)
+    total = len(df)
+    exact_matches = (df['exact_match'] == True).sum()
+    winner_correct = (df['winner_correct'] == True).sum()
+
+    exact_pct = (exact_matches / total * 100) if total > 0 else 0
+    winner_pct = (winner_correct / total * 100) if total > 0 else 0
+
+    print("=" * 80)
+    print("📊 FINAL SUMMARY")
+    print("=" * 80)
+    print(f"Total Predictions: {total}")
+    print(f"Exact Score Matches: {exact_matches} ({exact_pct:.2f}%)")
+    print(f"Winner Correct: {winner_correct} ({winner_pct:.2f}%)")
+    print("=" * 80)
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--only-results", action="store_true")
+    args = parser.parse_args()
+
+    if args.only_results:
+        print_results()
+    else:
+        run_testing_loop()
 
 if __name__ == "__main__":
-    run_testing_loop()
+    main()
