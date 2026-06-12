@@ -9,8 +9,8 @@ import argparse
 # Add parent directory to path to import project modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from agent import run_agent
-from tools import set_data_source
+from src.agent import run_agent
+from src.tools import set_data_source
 
 
 # Constants

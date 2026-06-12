@@ -9,11 +9,12 @@ This is a World Cup 2026 match prediction system powered by an LLM agent (OpenAI
 ## Architecture
 
 **Agent-Driven Prediction System:**
-- `agent.py`: Core LLM agent orchestration with function calling loop. Uses OpenAI-compatible API (configured via .env). The agent receives a detailed system prompt that guides its analysis methodology and makes function calls to gather data.
-- `tools.py`: Statistical analysis functions decorated with `@registry.register` for automatic tool schema generation. Each tool queries the match history dataset (results.csv) using pandas.
-- `tool_registry.py`: Automatic tool registration and schema generation from Python type hints. Converts functions to OpenAI-compatible function calling schemas.
-- `main.py`: CLI entry point for both single match predictions and batch predictions.
-- `predict_batch.py`: Batch prediction engine that loads all NA matches up to a given ID and predicts them sequentially.
+- `src/agent.py`: Core LLM agent orchestration with function calling loop. Uses OpenAI-compatible API (configured via .env). The agent receives a detailed system prompt that guides its analysis methodology and makes function calls to gather data.
+- `src/tools.py`: Statistical analysis functions decorated with `@registry.register` for automatic tool schema generation. Each tool queries the match history dataset (results.csv) using pandas.
+- `src/tool_registry.py`: Automatic tool registration and schema generation from Python type hints. Converts functions to OpenAI-compatible function calling schemas.
+- `src/main.py`: CLI entry point for both single match predictions and batch predictions.
+- `src/predict_batch.py`: Batch prediction engine that loads all NA matches up to a given ID and predicts them sequentially.
+- `main.py`: Convenience wrapper in project root that delegates to `src/main.py`.
 
 **Key Design Pattern:**
 Functions in `tools.py` are automatically converted to LLM tools via decorator. The registry extracts parameter types from function signatures and docstrings to generate JSON schemas. The agent calls these tools to gather statistics, then synthesizes predictions.
@@ -41,17 +42,20 @@ URL=https://your-openai-compatible-endpoint
 
 ### Running Predictions
 ```bash
-# Single match prediction
+# Single match prediction (from project root)
 python main.py "Team1" "Team2"
 python main.py Mexico "South Africa"
 python main.py "United States" Paraguay "USA at home as co-host"
+
+# OR run directly from src:
+python src/main.py Mexico "South Africa"
 
 # Batch prediction: predict all NA matches up to (including) ID
 python main.py 44999
 # Outputs to predictions.csv
 
 # List all valid team names
-python list_teams.py
+python src/list_teams.py
 ```
 
 ### Testing
@@ -73,8 +77,8 @@ python test/test_predictions.py --only-results
 
 ### Data Management
 ```bash
-# Set custom data source in code
-from tools import set_data_source
+# Set custom data source in code (for testing)
+from src.tools import set_data_source
 set_data_source("path/to/custom.csv")
 ```
 
@@ -99,13 +103,13 @@ set_data_source("path/to/custom.csv")
 - `get_elo_rating`: Current Elo rating and world ranking for a team
 
 **Adding New Tools:**
-1. Define function in `tools.py` with type hints
+1. Define function in `src/tools.py` with type hints
 2. Add `@registry.register` decorator
 3. Write docstring with parameter descriptions (format: `param_name: description`)
 4. Tool automatically becomes available to agent
 
 **System Prompt Philosophy:**
-The agent's system prompt (in agent.py) emphasizes:
+The agent's system prompt (in `src/agent.py`) emphasizes:
 - Weighted recent form (40%) > competitive record (30%) > head-to-head (15%) > neutral venue (15%)
 - Contextual factors only applied if explicitly provided by user
 - World Cup-specific scoring patterns (lower scoring, defensive play)
@@ -117,4 +121,5 @@ The agent's system prompt (in agent.py) emphasizes:
 - The agent uses an OpenAI-compatible API (configured via base_url in .env)
 - Data loaded with `@lru_cache()` for performance
 - Test framework allows incremental testing with resume capability
-- The model parameter in agent.py defaults to "gpt-5" (adjust per your API)
+- The model parameter in `src/agent.py` defaults to "gpt-5" (adjust per your API)
+- **Project structure**: All source code is in the `src/` directory. Use `python main.py` (wrapper) or `python src/main.py` (direct) to run.
