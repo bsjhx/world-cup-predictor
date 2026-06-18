@@ -1,7 +1,9 @@
 import sys
+from pathlib import Path
 from src.agent import run_agent
-from src.tools import get_all_team_names
+from src.tools import get_all_team_names, load_data
 from src.predict_batch import predict_na_matches, save_predictions
+from src.update_results import load_updated_results, update_matches, save_updated_results
 
 def cmd_predict(args):
     """Handle the 'predict' command - single match prediction"""
@@ -90,4 +92,43 @@ def cmd_list_teams(args):
     print("=" * 80)
     print("💡 Use these exact names (with quotes if they contain spaces)")
     print("   Example: python src/main.py predict \"United States\" Mexico")
+    print("=" * 80)
+
+
+def cmd_update_results(args):
+    """Handle the 'update-results' command"""
+    updated_file = args.updated_file
+    output_file = args.output
+    verbose = not args.quiet
+
+    # Validate updated_file exists
+    if not Path(updated_file).exists():
+        print(f"❌ Error: File '{updated_file}' not found")
+        sys.exit(1)
+
+    # Load both files
+    print("=" * 80)
+    print("🔄 UPDATING MATCH RESULTS")
+    print("=" * 80)
+    print(f"📂 Loading data files...")
+    print(f"   Source: data/results.csv")
+    print(f"   Updates: {updated_file}")
+
+    results_df = load_data()  # from tools.py
+    updated_df = load_updated_results(updated_file)
+
+    # Update matches
+    updated_df_final, stats = update_matches(results_df, updated_df, verbose)
+
+    # Save results
+    save_updated_results(updated_df_final, output_file)
+
+    # Print summary
+    print("\n" + "=" * 80)
+    print("✅ UPDATE COMPLETE!")
+    print("=" * 80)
+    print(f"  ✅ Updated:   {stats['updated_count']} matches")
+    print(f"  ⏭️  Skipped:   {stats['skipped_count']} matches (no new data)")
+    print(f"  ⚠️  Not found: {stats['not_found_count']} matches")
+    print(f"  💾 Saved to:  {output_file}")
     print("=" * 80)

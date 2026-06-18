@@ -1,4 +1,4 @@
-.PHONY: help predict batch list-teams test clean install
+.PHONY: help predict batch list-teams update-results test clean install
 
 # Default target - show help
 help:
@@ -11,6 +11,7 @@ help:
 	@echo "  make predict ARGS='Brazil Argentina -c \"Final\"'   - Predict with context"
 	@echo "  make batch ARGS='49300'                           - Batch predict up to ID"
 	@echo "  make list-teams                                   - List all valid teams"
+	@echo "  make update-results ARGS='data/updated.csv'       - Update results from file"
 	@echo "  make test                                         - Run test suite"
 	@echo ""
 	@echo "Examples:"
@@ -32,6 +33,10 @@ batch:
 # List all teams
 list-teams:
 	python -m src.main list-teams
+
+# Update match results
+update-results:
+	python -m src.main update-results $(ARGS)
 
 # Run test suite
 test:

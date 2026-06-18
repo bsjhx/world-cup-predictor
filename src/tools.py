@@ -19,7 +19,8 @@ def set_data_source(path: str):
 
 @lru_cache()
 def load_data():
-    df = pd.read_csv(_DATA_SOURCE, parse_dates=["date"])
+    # Keep "NA" as string, don't convert to NaN
+    df = pd.read_csv(_DATA_SOURCE, parse_dates=["date"], keep_default_na=False, na_values=[''])
     return df
 
 @lru_cache()

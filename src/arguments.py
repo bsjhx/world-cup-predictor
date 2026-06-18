@@ -80,4 +80,30 @@ def arguments_parser():
     )
     list_teams_parser.set_defaults(func=cmd_list_teams)
 
+    # ==================== UPDATE-RESULTS COMMAND ====================
+    update_results_parser = subparsers.add_parser(
+        'update-results',
+        help='Update match results with actual scores from a file',
+        description='Update results.csv with actual match scores from updated_results.csv'
+    )
+    update_results_parser.add_argument(
+        'updated_file',
+        type=str,
+        nargs='?',
+        default='data/updated_results.csv',
+        help='CSV file with updated scores (default: data/updated_results.csv)'
+    )
+    update_results_parser.add_argument(
+        '-o', '--output',
+        type=str,
+        default='data/results.csv',
+        help='Output CSV file path (default: data/results.csv)'
+    )
+    update_results_parser.add_argument(
+        '-q', '--quiet',
+        action='store_true',
+        help='Suppress verbose output'
+    )
+    update_results_parser.set_defaults(func=cmd_update_results)
+
     return parser
