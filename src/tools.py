@@ -1,6 +1,6 @@
 import pandas as pd
 from functools import lru_cache
-from tool_registry import ToolRegistry
+from src.tool_registry import ToolRegistry
 from datetime import datetime, timedelta
 
 # Create a global registry for all tools

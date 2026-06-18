@@ -42,20 +42,26 @@ URL=https://your-openai-compatible-endpoint
 
 ### Running Predictions
 ```bash
-# Single match prediction (from project root)
-python main.py "Team1" "Team2"
-python main.py Mexico "South Africa"
-python main.py "United States" Paraguay "USA at home as co-host"
+# Show available commands
+python main.py --help
 
-# OR run directly from src:
-python src/main.py Mexico "South Africa"
+# Single match prediction
+python main.py predict "Team1" "Team2"
+python main.py predict Mexico "South Africa"
+python main.py predict "United States" Paraguay -c "USA at home as co-host"
+
+# Quiet mode (suppress tool output)
+python main.py predict Brazil Argentina --quiet
 
 # Batch prediction: predict all NA matches up to (including) ID
-python main.py 44999
-# Outputs to predictions.csv
+python main.py batch 44999
+python main.py batch 44999 --output custom.csv
 
 # List all valid team names
-python src/list_teams.py
+python main.py list-teams
+
+# Or run directly from src:
+python src/main.py predict Mexico "South Africa"
 ```
 
 ### Testing

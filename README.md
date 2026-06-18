@@ -43,17 +43,31 @@ URL=https://your-openai-compatible-endpoint
 
 ## Usage
 
+### Quick Help
+
+```bash
+# Show all available commands
+python main.py --help
+
+# Show help for a specific command
+python main.py predict --help
+python main.py batch --help
+```
+
 ### Single Match Prediction
 
 ```bash
 # Basic prediction
-python main.py Brazil Argentina
+python main.py predict Brazil Argentina
 
 # With context
-python main.py "United States" Mexico "USA at home as co-host"
+python main.py predict "United States" Mexico --context "USA at home as co-host"
 
-# Teams with spaces need quotes
-python main.py "South Africa" "Saudi Arabia"
+# Quiet mode (no tool call output)
+python main.py predict Brazil Argentina --quiet
+
+# Short form with flags
+python main.py predict France Germany -c "World Cup Final" -q
 ```
 
 ### Batch Predictions
@@ -61,22 +75,20 @@ python main.py "South Africa" "Saudi Arabia"
 Predict all matches with NA scores up to a specific ID:
 
 ```bash
-python main.py 49300
-```
+# Basic batch prediction
+python main.py batch 49300
 
-This will:
-- Load all matches with NA scores up to ID 49300
-- Predict each match sequentially
-- Save results to `predictions.csv`
-- Append new predictions and overwrite duplicates
+# Custom output file
+python main.py batch 49300 --output my_predictions.csv
+
+# Quiet mode
+python main.py batch 49300 --quiet
+```
 
 ### List Valid Team Names
 
 ```bash
-python src/list_teams.py
-
-# Filter by World Cup year
-python src/list_teams.py 2022
+python main.py list-teams
 ```
 
 ## Project Structure

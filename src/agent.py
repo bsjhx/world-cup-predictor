@@ -1,7 +1,7 @@
 import json
 from openai import OpenAI
-from prompts import SYSTEM_PROMPT
-from tools import registry
+from src.prompts import SYSTEM_PROMPT
+from src.tools import registry
 from dotenv import load_dotenv
 import os
 

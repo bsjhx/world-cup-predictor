@@ -5,8 +5,8 @@ import pandas as pd
 import time
 import re
 from pathlib import Path
-from agent import run_agent
-from tools import load_data
+from src.agent import run_agent
+from src.tools import load_data
 
 
 def load_na_matches(max_id: int) -> pd.DataFrame:
