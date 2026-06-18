@@ -19,8 +19,21 @@ def set_data_source(path: str):
 
 @lru_cache()
 def load_data():
-    # Keep "NA" as string, don't convert to NaN
-    df = pd.read_csv(_DATA_SOURCE, parse_dates=["date"], keep_default_na=False, na_values=[''])
+    # Load CSV with keep_default_na=False to preserve "NA" strings in score columns
+    # Explicitly set dtype for id column to ensure it's numeric
+    df = pd.read_csv(
+        _DATA_SOURCE,
+        parse_dates=["date"],
+        keep_default_na=False,
+        na_values=[''],
+        dtype={'id': int}  # Ensure id column is integer
+    )
+
+    # Convert score columns: numeric strings -> int, keep "NA" as string
+    # This uses a lambda that checks if the value is "NA" before converting
+    df['home_score'] = df['home_score'].apply(lambda x: x if x == 'NA' else int(x))
+    df['away_score'] = df['away_score'].apply(lambda x: x if x == 'NA' else int(x))
+
     return df
 
 @lru_cache()
@@ -53,10 +66,12 @@ def get_head_to_head(team_a: str, team_b: str, last_n: int = 10) -> dict:
     """
     df = load_data()
 
+    # Filter for head-to-head matches, excluding NA scores (future matches)
     h2h = df[
-        ((df.home_team == team_a) & (df.away_team == team_b)) |
-        ((df.home_team == team_b) & (df.away_team == team_a))
-        ].tail(last_n)
+        (((df.home_team == team_a) & (df.away_team == team_b)) |
+         ((df.home_team == team_b) & (df.away_team == team_a))) &
+        (df.home_score != 'NA') & (df.away_score != 'NA')
+    ].tail(last_n)
 
     if h2h.empty:
         return {"error": f"No matches found between {team_a} and {team_b}"}
@@ -106,9 +121,11 @@ def get_recent_form(team: str, last_n: int = 10) -> dict:
     """
     df = load_data()
 
+    # Filter for team's matches, excluding NA scores (future matches)
     matches = df[
-        (df.home_team == team) | (df.away_team == team)
-        ].tail(last_n)
+        ((df.home_team == team) | (df.away_team == team)) &
+        (df.home_score != 'NA') & (df.away_score != 'NA')
+    ].tail(last_n)
 
     if matches.empty:
         return {"error": f"No matches found for {team}"}
@@ -167,10 +184,12 @@ def get_tournament_history(team: str, tournament: str = "FIFA World Cup") -> dic
     """
     df = load_data()
 
+    # Filter for tournament matches, excluding NA scores (future matches)
     wc = df[
         ((df.home_team == team) | (df.away_team == team)) &
-        (df.tournament == tournament)
-        ]
+        (df.tournament == tournament) &
+        (df.home_score != 'NA') & (df.away_score != 'NA')
+    ]
 
     if wc.empty:
         return {"error": f"No {tournament} matches found for {team}"}
@@ -212,9 +231,11 @@ def get_goals_stats(team: str, last_n: int = 20) -> dict:
     """
     df = load_data()
 
+    # Filter for team's matches, excluding NA scores (future matches)
     matches = df[
-        (df.home_team == team) | (df.away_team == team)
-        ].tail(last_n)
+        ((df.home_team == team) | (df.away_team == team)) &
+        (df.home_score != 'NA') & (df.away_score != 'NA')
+    ].tail(last_n)
 
     if matches.empty:
         return {"error": f"No matches found for {team}"}
@@ -254,8 +275,10 @@ def get_weighted_form(team: str, last_n: int = 20) -> dict:
     """
     df = load_data()
 
+    # Filter for team's matches, excluding NA scores (future matches)
     matches = df[
-        (df.home_team == team) | (df.away_team == team)
+        ((df.home_team == team) | (df.away_team == team)) &
+        (df.home_score != 'NA') & (df.away_score != 'NA')
     ].tail(last_n).copy()
 
     if matches.empty:
@@ -284,10 +307,6 @@ def get_weighted_form(team: str, last_n: int = 20) -> dict:
         is_home = row.home_team == team
         scored = row.home_score if is_home else row.away_score
         conceded = row.away_score if is_home else row.home_score
-
-        # Skip matches with no score (future matches)
-        if pd.isna(scored) or pd.isna(conceded):
-            continue
 
         # Calculate days since each match
         days_ago = (today - row.date).days
@@ -350,10 +369,12 @@ def get_competitive_record(team: str, years: int = 4) -> dict:
 
     cutoff_date = datetime.now() - timedelta(days=years*365)
 
+    # Filter for competitive matches, excluding NA scores (future matches)
     competitive = df[
         ((df.home_team == team) | (df.away_team == team)) &
         (df.date >= cutoff_date) &
-        (df.tournament != "Friendly")
+        (df.tournament != "Friendly") &
+        (df.home_score != 'NA') & (df.away_score != 'NA')
     ]
 
     if competitive.empty:
@@ -366,10 +387,6 @@ def get_competitive_record(team: str, years: int = 4) -> dict:
         is_home = row.home_team == team
         scored = row.home_score if is_home else row.away_score
         conceded = row.away_score if is_home else row.home_score
-
-        # Skip matches with no score (future matches)
-        if pd.isna(scored) or pd.isna(conceded):
-            continue
 
         goals_scored += scored
         goals_conceded += conceded
@@ -408,10 +425,11 @@ def get_neutral_venue_stats(team: str, last_n: int = 20) -> dict:
     """
     df = load_data()
 
-    # Neutral venue matches
+    # Neutral venue matches, excluding NA scores (future matches)
     neutral = df[
         ((df.home_team == team) | (df.away_team == team)) &
-        (df.neutral == True)
+        (df.neutral == True) &
+        (df.home_score != 'NA') & (df.away_score != 'NA')
     ].tail(last_n)
 
     if neutral.empty:
@@ -424,10 +442,6 @@ def get_neutral_venue_stats(team: str, last_n: int = 20) -> dict:
         is_home_listed = row.home_team == team
         scored = row.home_score if is_home_listed else row.away_score
         conceded = row.away_score if is_home_listed else row.home_score
-
-        # Skip matches with no score (future matches)
-        if pd.isna(scored) or pd.isna(conceded):
-            continue
 
         goals_scored += scored
         goals_conceded += conceded

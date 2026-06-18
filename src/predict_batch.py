@@ -22,10 +22,11 @@ def load_na_matches(max_id: int) -> pd.DataFrame:
     df = load_data()
 
     # Filter matches with NA scores and ID <= max_id
+    # Note: Since load_data() uses keep_default_na=False, NA scores are stored as string "NA"
     na_matches = df[
         (df['id'] <= max_id) &
-        (pd.isna(df['home_score'])) &
-        (pd.isna(df['away_score']))
+        (df['home_score'] == 'NA') &
+        (df['away_score'] == 'NA')
     ].copy()
 
     return na_matches
@@ -110,6 +111,7 @@ def predict_na_matches(max_id: int, verbose: bool = True, delay: float = 0.5) ->
                 prediction_text = run_agent(prompt, verbose=False)
                 break
             except Exception as e:
+                print(f"error: {e}")
                 if attempt < 2:
                     if verbose:
                         print(f"  ⚠️  API error (attempt {attempt + 1}/3), retrying in 5 seconds...")
